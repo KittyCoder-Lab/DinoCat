@@ -1,0 +1,121 @@
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const startText = document.getElementById('startText');
+
+let dino = { x: 50, y: 150, width: 20, height: 20, dy: 0, jumping: false };
+let obstacles = [];
+let score = 0;
+let gameOver = false;
+let started = false;
+
+function drawDino() {
+    ctx.fillStyle = 'green';
+    ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
+}
+
+function drawObstacles() {
+    ctx.fillStyle = 'red';
+    for (let obs of obstacles) {
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+    }
+}
+
+function drawScore() {
+    ctx.fillStyle = 'black';
+    ctx.font = '20px Arial';
+    ctx.fillText("Score: " + score, 10, 20);
+}
+
+function update() {
+    if (!started) return;
+    if (gameOver) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    dino.y += dino.dy;
+    if (dino.y < 150) {
+        dino.dy += 1;
+    } else {
+        dino.y = 150;
+        dino.dy = 0;
+        dino.jumping = false;
+    }
+
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        obstacles[i].x -= 5;
+        if (obstacles[i].x + obstacles[i].width < 0) {
+            obstacles.splice(i, 1);
+            score++;
+        }
+    }
+
+    for (let obs of obstacles) {
+        if (dino.x < obs.x + obs.width &&
+            dino.x + dino.width > obs.x &&
+            dino.y < obs.y + obs.height &&
+            dino.y + dino.height > obs.y) {
+            gameOver = true;
+            ctx.fillStyle = 'black';
+            ctx.font = '25px Arial';
+            ctx.fillText("Game Over! Tap eller C for ny runde", 150, 100);
+        }
+    }
+
+    drawDino();
+    drawObstacles();
+    drawScore();
+
+    if (!gameOver) requestAnimationFrame(update);
+}
+
+function spawnObstacle() {
+    if (!started) return;
+    if (!gameOver) {
+        obstacles.push({ x: canvas.width, y: 170, width: 20, height: 30 });
+        setTimeout(spawnObstacle, 2000);
+    }
+}
+
+function startGame() {
+    if (!started) {
+        started = true;
+        startText.style.display = 'none';
+        update();
+        spawnObstacle();
+    }
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.code === 'Space' && !dino.jumping && !gameOver) {
+        startGame();
+        dino.dy = -15;
+        dino.jumping = true;
+    }
+    if (e.code === 'KeyC' && gameOver) {
+        obstacles = [];
+        score = 0;
+        gameOver = false;
+        dino.y = 150;
+        dino.dy = 0;
+        startGame();
+    }
+});
+
+document.addEventListener('touchstart', function() {
+    startGame();
+    if (!dino.jumping && !gameOver) {
+        dino.dy = -15;
+        dino.jumping = true;
+    }
+    if (gameOver) {
+        obstacles = [];
+        score = 0;
+        gameOver = false;
+        dino.y = 150;
+        dino.dy = 0;
+        startGame();
+    }
+});
+
+update();
+spawnObstacle();
